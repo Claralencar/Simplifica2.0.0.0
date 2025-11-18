@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_URL = "http://localhost:8080";
   const CATEGORIAS_URL = `${API_URL}/categorias`;
   const METAS_URL = `${API_URL}/metas`;
+  const ECONOMIAS_URL = `${API_URL}/economias`;
   const DASHBOARD_URL = `${API_URL}/dashboard/resumo-principal`;
 
   // --- Elementos do Modal "Nova Meta" ---
@@ -16,6 +17,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Elementos do Modal "Adicionar Economia" ---
   const modalEconomiaOverlay = document.getElementById("modal-economia-overlay");
+  const formEconomia = document.getElementById("form-economia");
+  const selectMeta = document.getElementById("meta");
   const btnAbrirEconomia = document.getElementById("btn-abrir-economia");
   const btnFecharEconomia = document.getElementById("btn-fechar-economia");
   const btnCancelarEconomia = document.getElementById("btn-cancelar-economia");
@@ -49,21 +52,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- Modal de Economia ---
-  btnAbrirEconomia.addEventListener("click", () => modalEconomiaOverlay.classList.add("ativo"));
-  btnFecharEconomia.addEventListener("click", () => modalEconomiaOverlay.classList.remove("ativo"));
-  btnCancelarEconomia.addEventListener("click", () => modalEconomiaOverlay.classList.remove("ativo"));
-  modalEconomiaOverlay.addEventListener("click", (e) => {
-    if (e.target === modalEconomiaOverlay) modalEconomiaOverlay.classList.remove("ativo");
+  btnAbrirEconomia.addEventListener("click", () => {
+    // Carrega as metas no dropdown ANTES de abrir o modal
+    carregarMetasParaSelect(); 
+    modalEconomiaOverlay.classList.add("ativo");
   });
 
-  // --- Lógica do Formulário de Meta (Mostrar/Esconder Mês) ---
-  selectPeriodo.addEventListener("change", () => {
-    if (selectPeriodo.value === "MENSAL") {
-      campoMes.style.display = 'block';
-    } else {
-      campoMes.style.display = 'none';
-    }
+  btnFecharEconomia.addEventListener("click", fecharModalEconomia);
+  btnCancelarEconomia.addEventListener("click", fecharModalEconomia);
+  
+  modalEconomiaOverlay.addEventListener("click", (e) => {
+    if (e.target === modalEconomiaOverlay) fecharModalEconomia();
   });
+
+  function fecharModalEconomia() {
+    modalEconomiaOverlay.classList.remove("ativo");
+    formEconomia.reset();
+  }
 
   // =============================================
   // --- CARREGAMENTO DE DADOS (GET) ---
@@ -94,32 +99,111 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+ /**
+ * Busca metas (GET /metas) e preenche o <select> do modal de economia
+ */
+async function carregarMetasParaSelect() {
+  try {
+    const response = await fetch(METAS_URL);
+    if (!response.ok) throw new Error("Falha ao carregar metas.");
+    
+    const metas = await response.json();
+    
+    selectMeta.innerHTML = '<option value="">Selecione uma meta</option>'; // Limpa
+    
+    if (metas.length === 0) {
+       selectMeta.innerHTML = '<option value="">Nenhuma meta criada</option>';
+       return;
+    }
+
+    metas.forEach(meta => {
+      const option = document.createElement("option");
+      option.value = meta.id;
+      // Ex: "Viagem (MENSAL - 10/2025)" ou "Casa (ANUAL - 2026)"
+      const textoPeriodo = meta.periodo === 'MENSAL' 
+        ? `(${meta.periodo} - ${meta.mes}/${meta.ano})`
+        : `(${meta.periodo} - ${meta.ano})`;
+
+      option.textContent = `${meta.nome} ${textoPeriodo}`;
+      selectMeta.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Erro ao carregar metas no select:", error);
+    selectMeta.innerHTML = '<option value="">Erro ao carregar</option>';
+  }
+}
+
   /**
    * Busca os dados do Dashboard (GET /dashboard/resumo-principal)
+   * Busca TODAS as metas (GET /metas)
+   * Busca TODAS as economias (GET /economias)
    * e preenche a página inteira.
    */
   async function carregarDashboard() {
-    // Pega o mês e ano atuais para a API do dashboard
+    // Pega o mês e ano atuais
     const hoje = new Date();
     const mesAtual = hoje.getMonth() + 1; // JS (0-11) -> Java (1-12)
     const anoAtual = hoje.getFullYear();
 
     try {
-      const response = await fetch(`${DASHBOARD_URL}?mes=${mesAtual}&ano=${anoAtual}`);
-      if (!response.ok) throw new Error("Falha ao carregar dados do dashboard.");
+      // 1. Inicia as TRÊS requisições em paralelo
+      const dashboardPromise = fetch(`${DASHBOARD_URL}?mes=${mesAtual}&ano=${anoAtual}`);
+      const metasPromise = fetch(METAS_URL);
+      const economiasPromise = fetch(ECONOMIAS_URL);
+
+      // 2. Espera todas terminarem
+      const [dashboardResponse, metasResponse, economiasResponse] = await Promise.all([
+        dashboardPromise,
+        metasPromise,
+        economiasPromise
+      ]);
+
+      if (!dashboardResponse.ok) throw new Error("Falha ao carregar dados do dashboard.");
+      if (!metasResponse.ok) throw new Error("Falha ao carregar lista de metas.");
+      if (!economiasResponse.ok) throw new Error("Falha ao carregar lista de economias.");
       
-      const dashboard = await response.json();
+      // 3. Extrai o JSON das três
+      const dashboard = await dashboardResponse.json();
+      const todasAsMetas = await metasResponse.json();
+      const todasAsEconomias = await economiasResponse.json();
 
-      // 1. Preenche os Cartões de Estatísticas
-      statSaldo.textContent = formatadorBRL.format(dashboard.saldo_atual || 0);
-      statReceitaMes.textContent = formatadorBRL.format(dashboard.total_receitas_mes || 0);
-      statMetas.textContent = dashboard.progresso_metas_mes 
-        ? `${dashboard.progresso_metas_mes.length} ativas` 
-        : '0 ativas';
-      // statSucesso.textContent = ... (API não fornece isso, deixamos como está)
+      // 4. Lógica de "Metas Ativas"
+      const metasAtivasGeral = todasAsMetas.filter(meta => meta.ano >= anoAtual);
 
-      // 2. Preenche a Lista de Metas
-      listaMetasContainer.innerHTML = ""; // Limpa a lista
+      // 5. Lógica de "Total Economizado"
+      const totalEconomizado = todasAsEconomias.reduce(
+        (total, item) => total + item.economia, 
+        0
+      );
+
+      // 6. ✨ LÓGICA CORRIGIDA: Calcular o total economizado ESTE MÊS ✨
+      const economiasDoMes = todasAsEconomias.filter(item => {
+        
+        // 👇 *** ESTA É A CORREÇÃO *** 👇
+        // Se a economia não tiver uma data (ex: é um registro antigo),
+        // ela não é do mês atual, então pulamos (return false).
+        if (!item.data) {
+          return false;
+        }
+        // Se a data existir, continuamos a verificação
+        const [ano, mes] = item.data.split('-');
+        return parseInt(ano) === anoAtual && parseInt(mes) === mesAtual;
+      });
+
+      // Soma os valores do array que acabamos de filtrar
+      const totalEconomizadoMes = economiasDoMes.reduce(
+        (total, item) => total + item.economia,
+        0
+      );
+
+      // 7. Preenche os Cartões de Estatísticas
+      statSaldo.textContent = formatadorBRL.format(totalEconomizado || 0);
+      statReceitaMes.textContent = formatadorBRL.format(totalEconomizadoMes || 0); // <-- Agora deve funcionar
+      statMetas.textContent = `${metasAtivasGeral.length} ativas`;
+      // statSucesso.textContent = ...
+
+      // 8. Preenche a Lista de Metas
+      listaMetasContainer.innerHTML = "";
       if (dashboard.progresso_metas_mes && dashboard.progresso_metas_mes.length > 0) {
         dashboard.progresso_metas_mes.forEach(adicionarMetaNoDOM);
       } else {
@@ -205,7 +289,8 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const novaMeta = await response.json();
       
-      // Atualiza a lista de metas (simplesmente recarregando o dashboard)
+      // *** ESTA É A CORREÇÃO ***
+      // Apenas CHAME a função para recarregar o dashboard
       carregarDashboard(); 
       
       fecharModalMeta();
@@ -213,6 +298,57 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error("Erro ao salvar meta:", error);
       alert("Não foi possível salvar a meta. Verifique o console.");
+    }
+  });
+
+  // --- Listener para Salvar Economia ---
+  formEconomia.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    
+    const formData = new FormData(formEconomia);
+    const metaId = formData.get("meta");
+    const valorEconomia = formData.get("economia");
+    const dataEconomia = formData.get("data_economia");
+
+    if (!metaId) {
+      alert("Por favor, selecione uma meta.");
+      return;
+    }
+
+    if (!dataEconomia) { 
+      alert("Por favor, selecione uma data para a economia.");
+      return; 
+    }
+
+    // O JSON deve ser exatamente como o seu Controller espera
+    const economiaData = {
+      meta: {
+        id: parseInt(metaId)
+      },
+      economia: parseFloat(valorEconomia),
+      data: dataEconomia
+    };
+
+    try {
+      const response = await fetch(ECONOMIAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(economiaData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao salvar economia.");
+      }
+      
+      // Sucesso!
+      fecharModalEconomia();
+      
+      // Recarrega o dashboard para atualizar o "valorAtual" da meta
+      carregarDashboard(); 
+
+    } catch (error) {
+      console.error("Erro ao salvar economia:", error);
+      alert("Não foi possível salvar a economia. Verifique o console.");
     }
   });
 

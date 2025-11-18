@@ -65,21 +65,40 @@
   font-weight: bold;
 }
 
-/* --- Lista de Metas --- */
+/* ============================================= */
+/* --- Lista de Metas (Design Moderno) --- */
+/* ============================================= */
+
 .metas-list h2 {
   font-size: 1.4em;
   margin-bottom: 20px;
+  color: #333;
 }
 
 .meta-card {
+  /* ✨ Define a cor principal do card (azul, neste caso) */
+  --cor-meta-principal: #3498db; 
+  /* (Para o verde, seria: #2ecc71) */
+  /* (Para o laranja, seria: #f39c12) */
+
   background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.04);
+  padding: 20px 25px;
   margin-bottom: 20px;
-  border-left: 5px solid #1abc9c; 
+  
+  /* A borda colorida da imagem */
+  border: 1px solid #f0f0f0;
+  border-left: 6px solid var(--cor-meta-principal);
+  
+  /* Um fundo levemente colorido para combinar */
+  background-image: linear-gradient(to right, 
+    hsla(from var(--cor-meta-principal) h s l / 0.05), 
+    #ffffff 30%
+  );
 }
 
+/* --- Cabeçalho do Card (Ícone, Título, Valor) --- */
 .meta-card-header {
   display: flex;
   align-items: center;
@@ -87,33 +106,84 @@
   margin-bottom: 15px;
 }
 .meta-icon {
-  font-size: 1.5em;
+  font-size: 1.4em;
   padding: 12px;
-  border-radius: 8px;
-  background-color: #1abc9c;
+  border-radius: 10px;
+  
+  /* Usa a cor principal */
+  background-color: var(--cor-meta-principal);
   color: white;
 }
-.meta-card-header div {
-  flex-grow: 1;
+
+.meta-details {
+  flex-grow: 1; /* Ocupa o espaço do meio */
 }
-.meta-card-header h3 {
+.meta-details h3 {
   margin: 0;
-  font-size: 1.2em;
+  font-size: 1.25em;
+  color: #222;
 }
-.meta-card-header p {
+.meta-details p {
   margin: 0;
-  color: #555;
+  color: #666;
+  font-size: 0.95em;
 }
 
-.meta-target-value {
+.meta-amount {
+  text-align: right;
+  flex-shrink: 0; /* Não encolhe */
+}
+.meta-amount .meta-target-value {
   font-size: 1.3em;
   font-weight: bold;
-  text-align: right;
+  color: #333;
 }
-.meta-target-date {
-  color: #666;
+.meta-amount .meta-target-date {
+  color: #777;
   font-size: 0.9em;
-  text-align: right;
+}
+
+/* --- Progresso (Rótulos e Barra) --- */
+.meta-card-progress {
+  margin-bottom: 15px;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95em;
+  color: #555;
+  margin-bottom: 8px;
+}
+.progress-percent {
+  font-weight: bold;
+  /* Usa a cor principal */
+  color: var(--cor-meta-principal);
+}
+
+.progress-bar-container {
+  width: 100%;
+  background-color: #eef1f5; /* Fundo da barra mais escuro */
+  border-radius: 25px;
+  height: 12px;
+}
+.progress-bar-fill {
+  height: 100%;
+  /* Usa a cor principal */
+  background-color: var(--cor-meta-principal); 
+  border-radius: 25px;
+  transition: width 0.5s ease-in-out;
+}
+
+/* --- Rodapé do Card --- */
+.meta-card-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95em;
+}
+.meta-remaining {
+  color: #555;
+  font-weight: 500;
 }
 
 /* --- Barra de Progresso --- */

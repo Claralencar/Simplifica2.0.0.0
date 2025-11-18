@@ -95,9 +95,26 @@
         <button id="btn-fechar-economia" class="close-button">&times;</button>
       </div>
       <form id="form-economia">
-        <p>Este formulário será detalhado depois.</p>
+
+        <div class="form-group">
+          <label for="meta">Associar a uma Meta</label>
+          <select id="meta" name="meta">
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="economia">Valor Economizado</label>
+          <input type="text" id="economia" name="economia" placeholder="Ex: 200" required>
+        </div>
+
+        <div class="form-group">
+          <label for="data_economia">Data da Economia</label>
+          <input type="date" id="data_economia" name="data_economia" required>
+        </div>
+
         <div class="modal-footer">
           <button type="button" id="btn-cancelar-economia" class="btn btn-secondary">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
         </div>
       </form>
     </div>

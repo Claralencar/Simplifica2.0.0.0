@@ -204,8 +204,8 @@ async function carregarMetasParaSelect() {
 
       // 8. Preenche a Lista de Metas
       listaMetasContainer.innerHTML = "";
-      if (dashboard.progresso_metas_mes && dashboard.progresso_metas_mes.length > 0) {
-        dashboard.progresso_metas_mes.forEach(adicionarMetaNoDOM);
+      if (metasAtivasGeral.length > 0) {
+        metasAtivasGeral.forEach(adicionarMetaNoDOM);
       } else {
         listaMetasContainer.innerHTML = "<p>Nenhuma meta ativa encontrada para este período.</p>";
       }
@@ -227,25 +227,38 @@ async function carregarMetasParaSelect() {
 
     const div = document.createElement("div");
     div.className = "meta-card";
+    
+    // NOTA: No futuro, podemos adicionar classes aqui 
+    // para mudar a cor, ex: "meta-card meta-style-blue"
+    
+    // Define o ícone (por enquanto, um padrão)
+    // No futuro, podemos mudar com base na meta.categoria
+    const iconClass = "fas fa-bullseye"; 
+
     div.innerHTML = `
       <div class="meta-card-header">
-        <i class="meta-icon fas fa-bullseye"></i>
-        <div>
+        <i class="meta-icon ${iconClass}"></i>
+        
+        <div class="meta-details">
           <h3>${meta.nome}</h3>
-          <p>${meta.categoria ? `Meta de gastos: ${meta.categoria.nome}` : 'Meta geral de economia'}</p>
+          <p>${meta.categoria ? `Categoria: ${meta.categoria.nome}` : 'Meta geral de economia'}</p>
         </div>
-        <div>
+        
+        <div class="meta-amount">
           <span class="meta-target-value">${formatadorBRL.format(valorAlvo)}</span>
+          <br>
           <span class="meta-target-date">até ${meta.mes ? `${meta.mes}/` : ''}${meta.ano}</span>
         </div>
       </div>
 
-      <div class="progress-labels">
-        <span>${formatadorBRL.format(valorAtual)} de ${formatadorBRL.format(valorAlvo)}</span>
-        <span class="progress-percent">${percentual.toFixed(0)}%</span>
-      </div>
-      <div class="progress-bar-container">
-        <div class="progress-bar-fill" style="width: ${percentual.toFixed(0)}%;"></div>
+      <div class="meta-card-progress">
+        <div class="progress-labels">
+          <span>${formatadorBRL.format(valorAtual)} de ${formatadorBRL.format(valorAlvo)}</span>
+          <span class="progress-percent">${percentual.toFixed(0)}%</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" style="width: ${percentual.toFixed(0)}%;"></div>
+        </div>
       </div>
 
       <div class="meta-card-footer">
